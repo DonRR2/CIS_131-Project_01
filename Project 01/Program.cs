@@ -1,0 +1,410 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Threading;
+using System.IO;
+
+namespace Project_01
+{
+    class Program
+    {
+        struct Sprite
+        {
+            public string displayChar;
+            public int row;
+            public int col;
+            public string direction;
+            public string nextDirection;
+        }
+        struct Snake
+        {
+            public int count;
+            public Sprite[] sprite;
+        }
+
+        struct ListType
+        {
+            public int count;
+            public string[] words;
+        }
+        const int MAX_CELLS = 50;
+        const int OFFSET = 15;
+        const int MIN_WORD_LENGTH = 3;
+        const int SHORT_DELAY = 250;
+        const int LONG_DELAY = 2000;
+
+        static void Main(string[] args)
+        {
+            FileStream infile = new FileStream("dictionary.txt", FileMode.Open, FileAccess.Read);
+            StreamReader reader = new StreamReader(infile);
+            ListType dictList = new ListType();
+            Create(ref dictList);
+            LoadDict(ref dictList, reader);
+            infile.Close();
+            Sprite sprite = new Sprite();
+            sprite.displayChar = "*";
+            sprite.row = Console.WindowHeight / 2;
+            sprite.col = Console.WindowWidth / 2;
+            sprite.direction = "";
+            Snake snake = new Snake();
+            CreateSnake(ref snake);
+            bool snakeExists = false;
+            bool gameOver = false;
+            int points = 0;
+            ConsoleKeyInfo cki = new ConsoleKeyInfo();
+            Console.CursorVisible = false;
+            displaySprite(sprite);
+            Random randNum = new Random();
+            string[,] cells = new string[Console.WindowWidth, Console.WindowHeight];
+            populateTargets(ref cells, randNum);
+            while (cki.Key != ConsoleKey.Escape)
+            {
+                if (Console.KeyAvailable)
+                {
+                    cki = Console.ReadKey(true);
+                    while (Console.KeyAvailable == false)
+                    {
+                        moveSprite(ref sprite, ref snake, cki, ref gameOver, dictList, ref points);
+                        if (!gameOver)
+                        {
+                            displaySprite(sprite);
+                            displayTargets(cells);
+                        }
+                        if (gameOver)
+                        {
+                            DisplayScore(points);
+                        }
+                        else
+                        {
+                            if (cells[sprite.col, sprite.row] != null)
+                            {
+                                GrowSnake(ref cells, sprite, ref snake, ref snakeExists);
+                            }// end if
+
+                            if (snakeExists)
+                            {
+                                MoveSnake(ref snake, sprite, snakeExists, ref gameOver);
+                            }// end if
+                        }//end if else
+                        Thread.Sleep(SHORT_DELAY);
+                    }// end while
+                }// end if
+            }// end while
+        }// end main
+
+        static void Create(ref ListType dictList)
+        {
+            dictList.count = 0;
+            dictList.words = new string[10];
+        }// end Create
+
+        static void LoadDict(ref ListType dictList, StreamReader reader)
+        {
+            string inputRecord = "";
+            int count = 0;
+            inputRecord = reader.ReadLine();
+            while (inputRecord != null)
+            {
+                if (count >= dictList.words.Length)
+                {
+                    Array.Resize(ref dictList.words, dictList.words.Length * 2);
+                }// end if
+                if (inputRecord.Length >= MIN_WORD_LENGTH)
+                {
+                    dictList.words[count] = inputRecord;
+                    count++;
+                }//end if
+                inputRecord = reader.ReadLine();
+            }// end while
+
+        }//end loadDict
+
+        static void CreateSnake(ref Snake snake)
+        {
+            snake.count = 0;
+            snake.sprite = new Sprite[10];
+        }// end CreateSnake
+
+        static void moveSprite(ref Sprite sprite, ref Snake snake, ConsoleKeyInfo cki,
+                               ref bool gameOver, ListType dictlist, ref int points)
+        {
+
+            switch (cki.Key)
+            {
+                case ConsoleKey.UpArrow:
+                    if (sprite.direction == "D")
+                    {
+                        sprite.row++;
+                        if (sprite.row > Console.WindowHeight - 1)
+                        {
+                            gameOver = true;
+                        }
+                    }
+                    else
+                    {
+                        sprite.row--;
+                        sprite.direction = "U";
+                        snake.sprite[0].nextDirection = sprite.direction;
+                        if (sprite.row < 0)
+                        {
+                            gameOver = true;
+                        }
+                    }
+                    break;
+
+                case ConsoleKey.RightArrow:
+                    if (sprite.direction == "L")
+                    {
+                        sprite.col--;
+                        if (sprite.col < 0 + OFFSET)
+                        {
+                            gameOver = true;
+                        }
+                    }
+                    else
+                    {
+                        sprite.col++;
+                        sprite.direction = "R";
+                        snake.sprite[0].nextDirection = sprite.direction;
+
+
+                        if (sprite.col >= Console.WindowWidth - 1)
+                        {
+                            gameOver = true;
+                        }
+                    }
+                    break;
+
+                case ConsoleKey.DownArrow:
+                    if (sprite.direction == "U")
+                    {
+                        sprite.row--;
+                        if (sprite.row < 0)
+                        {
+                            gameOver = true;
+                        }
+                    }
+                    else
+                    {
+                        sprite.row++;
+                        sprite.direction = "D";
+                        snake.sprite[0].nextDirection = sprite.direction;
+                        if (sprite.row > Console.WindowHeight - 1)
+                        {
+                            gameOver = true;
+                        }
+                    }
+                    break;
+
+                case ConsoleKey.LeftArrow:
+                    if (sprite.direction == "R")
+                    {
+                        sprite.col++;
+                        if (sprite.col > Console.WindowWidth - 1)
+                        {
+                            gameOver = true;
+                        }
+                    }
+                    else
+                    {
+                        sprite.col--;
+                        sprite.direction = "L";
+                        snake.sprite[0].nextDirection = sprite.direction;
+                        if (sprite.col < 0 + OFFSET)
+                        {
+                            gameOver = true;
+                        }
+                    }
+                    break;
+
+                case ConsoleKey.P:
+                    while (Console.KeyAvailable == false)
+                    {
+                        ;// Just pause the game.
+                    }
+                    break;
+
+                case ConsoleKey.Spacebar:
+                    while (Console.KeyAvailable == false)
+                    {// check for words
+                        WordCheck(ref snake, dictlist, ref points);
+                    }//end while
+                    break;
+
+                default:
+                    break;
+
+            }// end switch
+        }// end moveSprite()
+
+        private static void displaySprite(Sprite sprite)
+        {
+            Console.Clear();
+            Console.SetCursorPosition(sprite.col, sprite.row);
+            Console.Write(sprite.displayChar);
+
+        }// end displaySprite
+
+        private static void populateTargets(ref string[,] cells, Random randNum)
+        {
+            int i = 0;
+            int x = 0;
+            int y = 0;
+            string z = "";
+            for (i = 0; i < MAX_CELLS; i++)
+            {
+                x = randNum.Next(OFFSET + 1, Console.WindowWidth - 2);
+                y = randNum.Next(1, Console.WindowHeight - 2);
+                z = Convert.ToString((char)(randNum.Next(65, 90)));
+                cells[x, y] = z;
+                Console.SetCursorPosition(x, y);
+                Console.Write(cells[x, y]);
+            }//end for
+        }// end populateTargets
+
+        private static void displayTargets(string[,] cells)
+        {
+            for (int x = OFFSET; x < Console.WindowWidth - 1; x++)
+            {
+                for (int y = 0; y < Console.WindowHeight - 1; y++)
+                {
+                    if (cells[x, y] != "")
+                    {
+                        Console.SetCursorPosition(x, y);
+                        Console.Write(cells[x, y]);
+                    }// end if
+                }// end for y
+            }// end for x
+        }// end displayTargets
+
+        private static void GrowSnake(ref string[,] cells, Sprite sprite, ref Snake snake, ref bool snakeExists)
+        {
+            if (!snakeExists)
+            {
+                snake.sprite[0].direction = sprite.direction;
+                switch (sprite.direction)
+                {
+                    case "U":
+                        snake.sprite[0].row = sprite.row + 1;
+                        snake.sprite[0].col = sprite.col;
+                        break;
+                    case "D":
+                        snake.sprite[0].row = sprite.row - 1;
+                        snake.sprite[0].col = sprite.col;
+                        break;
+                    case "L":
+                        snake.sprite[0].row = sprite.row;
+                        snake.sprite[0].col = sprite.col + 1;
+                        break;
+                    case "R":
+                        snake.sprite[0].row = sprite.row;
+                        snake.sprite[0].col = sprite.col - 1;
+                        break;
+                    default:
+                        Console.SetCursorPosition(0, 2);
+                        Console.Write("Error in GrowSnake1");
+                        Thread.Sleep(LONG_DELAY);
+                        break;
+                }// end switch
+            } // end if
+            switch (snake.sprite[snake.count].direction)
+            {
+                case "U":
+                    snake.sprite[snake.count + 1].col = snake.sprite[snake.count].col;
+                    snake.sprite[snake.count + 1].row = snake.sprite[snake.count].row + 1;
+                    snake.sprite[snake.count + 1].direction = "U";
+                    break;
+                case "D":
+                    snake.sprite[snake.count + 1].col = snake.sprite[snake.count].col;
+                    snake.sprite[snake.count + 1].row = snake.sprite[snake.count].row - 1;
+                    snake.sprite[snake.count + 1].direction = "D";
+                    break;
+                case "L":
+                    snake.sprite[snake.count + 1].col = snake.sprite[snake.count].col + 1;
+                    snake.sprite[snake.count + 1].row = snake.sprite[snake.count].row;
+                    snake.sprite[snake.count + 1].direction = "L";
+                    break;
+                case "R":
+                    snake.sprite[snake.count + 1].col = snake.sprite[snake.count].col - 1;
+                    snake.sprite[snake.count + 1].row = snake.sprite[snake.count].row;
+                    snake.sprite[snake.count + 1].direction = "R";
+                    break;
+                default:
+                    Console.SetCursorPosition(0, 2);
+                    Console.Write("Error in GrowSnake2");
+                    Thread.Sleep(LONG_DELAY);
+                    break;
+            }// end switch
+
+            snake.sprite[snake.count + 1].nextDirection = snake.sprite[snake.count].nextDirection;
+            snake.sprite[snake.count + 1].displayChar = cells[sprite.col, sprite.row];
+            cells[sprite.col, sprite.row] = null;
+            snakeExists = true;
+            snake.count++;
+            if (snake.count >= snake.sprite.Length - 1)
+            {
+                Array.Resize(ref snake.sprite, snake.sprite.Length * 2);
+            }// end if
+        }// end GrowSnake
+
+        private static void MoveSnake(ref Snake snake, Sprite sprite, bool snakeExists, ref bool gameOver)
+        {
+            for (int i = 0; i <= snake.count; i++)
+            {
+                snake.sprite[i + 1].nextDirection = snake.sprite[i].direction;
+                snake.sprite[i].direction = snake.sprite[i].nextDirection;
+
+                switch (snake.sprite[i].direction)
+                {
+                    case "U":
+                        snake.sprite[i].row--;
+                        break;
+
+                    case "D":
+                        snake.sprite[i].row++;
+                        break;
+
+                    case "L":
+                        snake.sprite[i].col--;
+                        break;
+
+                    case "R":
+                        snake.sprite[i].col++;
+                        break;
+
+                    default:
+                        Console.SetCursorPosition(0, 2);
+                        Console.WriteLine("Error in MoveSnake");
+                        Thread.Sleep(LONG_DELAY);
+                        break;
+                }// end switch
+
+                Console.SetCursorPosition(snake.sprite[i].col, snake.sprite[i].row);
+                Console.Write(snake.sprite[i].displayChar);
+                
+                if(sprite.col == snake.sprite[i].col &&
+                   sprite.row == snake.sprite[i].row &&
+                    i > 0)
+                {
+                    gameOver = true;
+                }// end if
+            }// end for
+
+        }// end MoveSnake
+
+        private static void WordCheck(ref Snake snake, ListType dictList, ref int points)
+        {
+
+        }// end CheckWords
+
+        private static void DisplayScore(int points)
+        {
+
+            Console.SetCursorPosition(0, 24);
+            Console.Write("Your score = {0}", points);
+        } // end DisplayScore
+
+    } // end class
+} // end namespace

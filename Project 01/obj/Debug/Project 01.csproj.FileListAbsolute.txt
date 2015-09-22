@@ -1,0 +1,12 @@
+E:\CIS 131\Projects\Project 01\Project 01\bin\Debug\Project 01.exe.config
+K:\CIS 131\Projects\Project 01\Project 01\bin\Debug\Project 01.exe.config
+K:\CIS 131\Projects\Project 01\Project 01\bin\Debug\Project 01.exe
+K:\CIS 131\Projects\Project 01\Project 01\bin\Debug\Project 01.pdb
+K:\CIS 131\Projects\Project 01\Project 01\obj\Debug\Project 01.csprojResolveAssemblyReference.cache
+K:\CIS 131\Projects\Project 01\Project 01\obj\Debug\Project 01.exe
+K:\CIS 131\Projects\Project 01\Project 01\obj\Debug\Project 01.pdb
+E:\CIS 131\Projects\Project 01\Project 01\obj\Debug\Project 01.exe
+E:\CIS 131\Projects\Project 01\Project 01\obj\Debug\Project 01.pdb
+E:\CIS 131\Projects\Project 01\Project 01\bin\Debug\Project 01.exe
+E:\CIS 131\Projects\Project 01\Project 01\bin\Debug\Project 01.pdb
+E:\CIS 131\Projects\Project 01\Project 01\obj\Debug\Project 01.csprojResolveAssemblyReference.cache
